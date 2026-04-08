@@ -1,51 +1,30 @@
-# 🛡️ Investigación: GNS3 e Hipervisores (Windows 11)
+# Investigación: Análisis de GNS3 e Hipervisores (Windows 11)
 
-> **Estado:** 🟢 Investigación Completada  
-> **Plataforma:** GNS3 + Windows 11  
-> **Carrera:** Ingeniería de Ciberseguridad
-
-Este repositorio documenta la investigación y configuración de un entorno de emulación de redes profesional para la carrera de **Ingeniería de Ciberseguridad**.
+Este repositorio contiene la **investigación técnica** sobre la integración de GNS3 con distintos entornos de virtualización, analizando su arquitectura y optimización en sistemas Windows 11 para la carrera de **Ingeniería de Ciberseguridad**.
 
 ---
 
-## 1. Arquitectura de Virtualización en Windows 11
-Para ejecutar laboratorios de red con alto rendimiento, se habilitó la **Virtualización en la BIOS/UEFI**.
+### 1. Fundamentos de Virtualización en Windows 11
+La investigación determinó que para un entorno de emulación profesional, la base reside en la correcta interacción entre el hardware y el software:
+* **Capa de Hardware:** La habilitación de VT-x/AMD-V en la BIOS es el requisito primario.
+* **Seguridad del SO:** Se analizó el impacto del "Aislamiento de núcleo", el cual debe ser compatible con las extensiones de virtualización para evitar conflictos de rendimiento.
 
-* **Seguridad:** Se verificó que el "Aislamiento de núcleo" no bloquee los recursos de VirtualBox.
-* **VT-x/AMD-V:** Esencial para que el hipervisor acceda directamente al procesador.
+### 2. Análisis del Motor: GNS3 VM y Soporte KVM
+Se investigó la importancia de la **GNS3 VM** como el componente que gestiona los nodos de red de manera nativa. 
 
-## 2. GNS3 VM: El Motor de Simulación
-La **GNS3 VM** es el servidor que ejecuta los nodos de red de manera eficiente.
-
-* **Soporte KVM:** Como se muestra en la configuración, el estado es `True`, garantizando aceleración por hardware nativa.
-
----
-
-## 3. Integración con Hipervisores
-
-### 🔹 VirtualBox (Tipo 2)
-Se configuró un adaptador **Host-Only** y se activó el **Modo Promiscuo** (*Permitir todo*) para que el tráfico de Capa 2 sea procesado correctamente por los routers virtuales.
-
-### 🔹 VMware ESXi (Tipo 1)
-A diferencia de VirtualBox, ESXi corre directamente sobre el hardware. La conexión se realiza mediante la IP del servidor y el puerto **3080**.
+Un punto crítico de la investigación fue la validación del **Soporte KVM**. Como se observa en la captura técnica adjunta, el estado `True` confirma que el hipervisor permite la aceleración por hardware, permitiendo que las máquinas virtuales de red funcionen con la velocidad del procesador físico:
 
 ---
 
-## 4. Matriz de Solución de Errores (Troubleshooting)
+### 3. Comparativa de Hipervisores Investigados
+* **VirtualBox (Tipo 2):** Se analizó su flexibilidad en entornos de desarrollo. Se destaca la necesidad técnica del **Modo Promiscuo** para permitir el paso de tráfico de Capa 2 (tramas Ethernet) entre routers virtuales.
+* **VMware ESXi (Tipo 1):** Investigado como la solución de alto rendimiento. Al ser un hipervisor "Bare Metal", ofrece una gestión más eficiente de los recursos mediante la API en el puerto **3080**.
 
-| Error Detectado | Causa Técnica | Solución Implementada |
+### 4. Matriz de Soluciones Técnicas (Troubleshooting)
+
+| Hallazgo | Causa Técnica | Resolución Propuesta |
 | :--- | :--- | :--- |
-| **KVM support: False** | Extensiones de virtualización no enviadas a la VM. | `VBoxManage modifyvm "GNS3 VM" --nested-hw-virt on` |
-| **Error puerto 3080** | Firewall de Windows bloqueando la API. | Crear regla de entrada en el Firewall para el puerto 3080. |
-| **Sin conectividad** | Modo promiscuo desactivado. | Cambiar adaptador a "Permitir todo" en VirtualBox. |
+| **KVM disponible: False** | Incompatibilidad de virtualización anidada. | Habilitar `nested-hw-virt` mediante CLI. |
+| **Fallo de conexión API** | Restricciones de red en el puerto 3080. | Apertura de puertos en el Firewall local. |
+| **Aislamiento de Tráfico** | Desactivación de modo promiscuo. | Ajuste del adaptador a "Permitir todo". |
 
----
-
-## 5. Diagrama de Arquitectura
-El siguiente esquema muestra la jerarquía de la instalación:
-
-```mermaid
-graph TD
-    A[Laptop Windows 11] --> B[VirtualBox]
-    B --> C[GNS3 VM]
-    C --> D[Nodos de Red / IOU / QEMU]
